@@ -1,16 +1,20 @@
 const canvas: HTMLCanvasElement = document.getElementById('main') as HTMLCanvasElement;
-const xxxx = 970;
-canvas.width = xxxx;
-canvas.height = xxxx;
-const radius = 0.1;
 
-const { clientWidth, clientHeight } = canvas;
-console.log(canvas);
-console.log(clientWidth, clientHeight);
+const radius = 0.05;
+const first_point = 80;
+const point_padding = 20;
+const canvas_size = 970;
+
+const total_points_to_draw = 1_000_000;
+const points_to_draw_per_animation = 1_000;
 
 class CanvasHandler {
   private ctx: CanvasRenderingContext2D;
-  public constructor(private target: HTMLCanvasElement) {
+  public constructor(
+    private clientWidth: number,
+    private clientHeight: number,
+    target: HTMLCanvasElement
+  ) {
     this.ctx = target.getContext('2d');
   }
   drawPoint(p: Point) {
@@ -20,22 +24,23 @@ class CanvasHandler {
   }
 
   clear() {
-    this.ctx.clearRect(0, 0, clientWidth, clientHeight);
+    this.ctx.clearRect(0, 0, this.clientWidth, this.clientHeight);
   }
 }
+
 class MainGame {
   basePoints: [Point, Point, Point];
-  rpg: () => Point;
+  randomPointGetter: () => Point;
   currentPoint: Point;
-  padding = 20;
 
-  constructor(private height: number, private width: number, private handler: CanvasHandler) {
+  constructor(height: number, width: number, private handler: CanvasHandler) {
     this.basePoints = [
-      new Point(0 + this.padding, height - this.padding),
-      new Point(this.width - this.padding, height - this.padding),
-      new Point(width / 2, 0 + this.padding),
+      new Point(0 + point_padding, height - point_padding),
+      new Point(width - point_padding, height - point_padding),
+      new Point(width / 2, 0 + point_padding),
     ];
-    this.rpg = () => this.basePoints[Math.floor(Math.random() * this.basePoints.length)];
+    this.randomPointGetter = () =>
+      this.basePoints[Math.floor(Math.random() * this.basePoints.length)];
     this.currentPoint = new Point(80, 80);
   }
 
@@ -53,7 +58,7 @@ class MainGame {
   }
 
   private calcNextPoint(): void {
-    this.currentPoint = this.rpg().avg(this.currentPoint);
+    this.currentPoint = this.randomPointGetter().avg(this.currentPoint);
     this.handler.drawPoint(this.currentPoint);
   }
 }
@@ -66,20 +71,24 @@ class Point {
 }
 
 function main() {
-  const x = new CanvasHandler(canvas);
-  const g = new MainGame(clientHeight, clientWidth, x);
-  g.drawInitial();
-  let total = 1_000_000;
+  canvas.width = canvas_size;
+  canvas.height = canvas_size;
 
+  const { clientWidth, clientHeight } = canvas;
+  const canvasHandler = new CanvasHandler(clientWidth, clientHeight, canvas);
+  const drawer = new MainGame(clientHeight, clientWidth, canvasHandler);
+
+  drawer.drawInitial();
+
+  let total = total_points_to_draw;
   let animation = () => {
-    g.calc(500);
-    console.log('Hello');
-
     if (--total < 0) return;
+
+    drawer.calc(points_to_draw_per_animation);
     window.requestAnimationFrame(animation);
   };
+
   window.requestAnimationFrame(animation);
-  console.log('Works');
 }
 
 main();
